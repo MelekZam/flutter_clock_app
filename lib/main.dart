@@ -37,6 +37,8 @@ class App extends ConsumerStatefulWidget {
 class AppState extends ConsumerState<App> {
   @override
   void initState() {
+    ref.read(settingsProvider.notifier).loadStateFromLocalStorage();
+    ref.read(alarmsProvider.notifier).loadStateFromLocalStorage();
     _loadRingtones();
     super.initState();
   }

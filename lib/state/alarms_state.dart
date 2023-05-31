@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 @immutable
 class Alarm {
@@ -20,6 +23,18 @@ class Alarm {
       isActive ?? this.isActive,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'hour': hour,
+      'minute': minute,
+      'isActive': isActive,
+    };
+  }
+
+  static Alarm alarmFromJson(Map<String, dynamic> json) {
+    return Alarm(json['hour'], json['minute'], json['isActive']);
+  }
 }
 
 class AlarmsStateNotifier extends StateNotifier<List<Alarm>> {
@@ -27,6 +42,7 @@ class AlarmsStateNotifier extends StateNotifier<List<Alarm>> {
 
   void addAlarm(Alarm alarm) {
     state = [...state, alarm];
+    saveStateToLocalStorage();
   }
 
   void toggleAlarm(int index) {
@@ -36,12 +52,14 @@ class AlarmsStateNotifier extends StateNotifier<List<Alarm>> {
       if (index == mapIdx) return alarm.copyWith(isActive: !alarm.isActive);
       return alarm;
     }).toList();
+    saveStateToLocalStorage();
   }
 
   void removeAlarm(int index) {
     final List<Alarm> newState = [...state];
     newState.removeAt(index);
     state = newState;
+    saveStateToLocalStorage();
   }
 
   String readAlarm(int index, String hourFormat) {
@@ -71,6 +89,7 @@ class AlarmsStateNotifier extends StateNotifier<List<Alarm>> {
       }
     }
     state = nextState;
+    saveStateToLocalStorage();
   }
 
   Alarm? get nextAlarm {
@@ -95,6 +114,33 @@ class AlarmsStateNotifier extends StateNotifier<List<Alarm>> {
       return alarmTotalMinutes - nowTotalMinutes;
     } else {
       return (24 * 60 - nowTotalMinutes) + alarmTotalMinutes;
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'alarms': state.map((alarm) => alarm.toJson()).toList(),
+    };
+  }
+
+  void fromJson(Map<String, dynamic> json) {
+    final List<Alarm> newstate = [];
+    for (final alarm in json['alarms']) {
+      newstate.add(Alarm.alarmFromJson(alarm));
+    }
+    state = newstate;
+  }
+
+  Future<void> saveStateToLocalStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('alarmsState', jsonEncode(toJson()));
+  }
+
+  Future<void> loadStateFromLocalStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? jsonString = prefs.getString('alarmsState');
+    if (jsonString != null) {
+      fromJson(jsonDecode(jsonString));
     }
   }
 }
