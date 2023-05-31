@@ -62,8 +62,8 @@ class Ringtones extends ConsumerWidget {
       await player.setReleaseMode(ReleaseMode.loop);
       await player.play(
           DeviceFileSource('/system/media/audio/ringtones/$ringtone.ogg'));
-      Future.delayed(Duration(seconds: seconds), () {
-        player.stop();
+      await Future.delayed(Duration(seconds: seconds), () async {
+        await player.stop();
       });
     } catch (ex) {}
   }
